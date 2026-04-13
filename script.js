@@ -1,154 +1,130 @@
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
-// HD
+// resize
 function resize() {
-  const scale = window.devicePixelRatio || 1;
-  canvas.width = window.innerWidth * scale;
-  canvas.height = window.innerHeight * scale;
-  canvas.style.width = window.innerWidth + "px";
-  canvas.style.height = window.innerHeight + "px";
-  ctx.setTransform(scale, 0, 0, scale, 0, 0);
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
 }
 resize();
-window.addEventListener("resize", resize);
 
-// OYUN DURUMU
+// oyun durumu
 let started = false;
 let gameOver = false;
 
-// KUŞ
-let bird = {
-  x: 100,
-  y: window.innerHeight / 2,
-  velocity: 0
-};
+// sesler
+const startSound = new Audio("https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg");
+const flapSound = new Audio("https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg");
 
+// kuş
+let bird = { x: 100, y: 200, velocity: 0 };
+
+// pipes
 let pipes = [];
 let score = 0;
 
-// BORU
+// highscore
+let highScore = localStorage.getItem("highScore") || 0;
+document.getElementById("highScore").innerText = "En iyi: " + highScore;
+
+// loading → start
+setTimeout(() => {
+  document.getElementById("loading").style.display = "none";
+  document.getElementById("startScreen").style.display = "flex";
+}, 2000);
+
+// boru
 function createPipe() {
   const gap = window.innerHeight * 0.45;
   const margin = 80;
 
-  const minY = margin;
-  const maxY = window.innerHeight - gap - margin;
-
-  const top = Math.random() * (maxY - minY) + minY;
+  const top = Math.random() * (window.innerHeight - gap - margin * 2) + margin;
 
   pipes.push({
     x: window.innerWidth,
     width: 60,
-    top: top,
+    top,
     bottom: top + gap,
     passed: false
   });
 }
 
-// TIKLAMA
+// dokunma
 function flap() {
-  // ilk dokunuş → başlat
+
   if (!started) {
     started = true;
+    startSound.play();
+    document.getElementById("startScreen").style.display = "none";
     return;
   }
 
-  // ölüyse restart
   if (gameOver) {
-    reset();
+    location.reload();
     return;
   }
 
   bird.velocity = -8;
+  flapSound.play();
 }
 
 document.addEventListener("click", flap);
 document.addEventListener("touchstart", flap);
 
-// UPDATE
+// update
 function update() {
   if (!started || gameOver) return;
 
   bird.velocity += 0.4;
   bird.y += bird.velocity;
 
-  if (bird.y > window.innerHeight || bird.y < 0) {
-    gameOver = true;
-  }
+  if (bird.y > window.innerHeight || bird.y < 0) endGame();
 
   pipes.forEach(p => {
     p.x -= 2;
 
-    if (!p.passed && p.x + p.width < bird.x) {
+    if (!p.passed && p.x < bird.x) {
       score++;
       p.passed = true;
       document.getElementById("score").innerText = score;
     }
 
-    const birdTop = bird.y - 15;
-    const birdBottom = bird.y + 15;
-
     if (
-      bird.x + 15 > p.x &&
-      bird.x - 15 < p.x + p.width &&
-      (birdTop < p.top || birdBottom > p.bottom)
-    ) {
-      gameOver = true;
-    }
+      bird.x > p.x &&
+      bird.x < p.x + 60 &&
+      (bird.y < p.top || bird.y > p.bottom)
+    ) endGame();
   });
 
-  if (
-    pipes.length === 0 ||
-    window.innerWidth - pipes[pipes.length - 1].x > 400
-  ) {
+  if (pipes.length === 0 || window.innerWidth - pipes[pipes.length - 1].x > 400) {
     createPipe();
   }
 }
 
-// RESET
-function reset() {
-  bird.y = window.innerHeight / 2;
-  bird.velocity = 0;
-  pipes = [];
-  score = 0;
-  gameOver = false;
-  started = false;
-  document.getElementById("score").innerText = score;
-}
-
-// ÇİZ
+// draw
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  // kuş
   ctx.font = "35px Arial";
-  ctx.fillText("😘", bird.x - 15, bird.y + 10);
+  ctx.fillText("😘", bird.x, bird.y);
 
-  // borular
-  ctx.fillStyle = "#2ecc71";
+  ctx.fillStyle = "green";
   pipes.forEach(p => {
-    ctx.fillRect(p.x, 0, p.width, p.top);
-    ctx.fillRect(p.x, p.bottom, p.width, window.innerHeight);
+    ctx.fillRect(p.x, 0, 60, p.top);
+    ctx.fillRect(p.x, p.bottom, 60, canvas.height);
   });
+}
 
-  // 🟡 BAŞLANGIÇ YAZISI
-  if (!started) {
-    ctx.font = "30px Arial";
-    ctx.fillStyle = "white";
-    ctx.fillText("Dokunarak Başla 💖", 50, window.innerHeight / 2);
-  }
+// end
+function endGame() {
+  gameOver = true;
 
-  // 💀 GAME OVER YAZISI
-  if (gameOver) {
-    ctx.font = "30px Arial";
-    ctx.fillStyle = "red";
-    ctx.fillText("Seni seviyorum ❤️", 50, window.innerHeight / 2);
-    ctx.fillText("Tekrar dokun", 50, window.innerHeight / 2 + 40);
+  if (score > highScore) {
+    localStorage.setItem("highScore", score);
   }
 }
 
-// LOOP
+// loop
 function loop() {
   update();
   draw();
