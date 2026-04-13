@@ -8,34 +8,24 @@ function resize() {
 resize();
 window.addEventListener("resize", resize);
 
-// 😘 KUŞ
 let bird = {
   x: 100,
   y: 200,
   velocity: 0,
-  gravity: 0.45,
-  lift: -9
+  gravity: 0.5,
+  lift: -10
 };
 
 let pipes = [];
-let hearts = [];
-let clouds = [];
 let score = 0;
 let gameOver = false;
 
-// ☁️ BULUT OLUŞTUR
-for (let i = 0; i < 5; i++) {
-  clouds.push({
-    x: Math.random() * canvas.width,
-    y: Math.random() * 200,
-    size: Math.random() * 50 + 50
-  });
-}
-
-// 🟩 BORU (DAHA KOLAY)
+// ✅ GÜVENLİ BORU SİSTEMİ
 function createPipe() {
-  let gap = 260; // ÇOK GENİŞ (kolaylık)
-  let top = Math.random() * (canvas.height - gap);
+  const gap = Math.max(220, canvas.height * 0.35); 
+  const margin = 50; // üst alt boşluk
+
+  const top = Math.random() * (canvas.height - gap - margin * 2) + margin;
 
   pipes.push({
     x: canvas.width,
@@ -46,26 +36,12 @@ function createPipe() {
   });
 }
 
-// 💖 KALP
-function createHeart(x, y) {
-  hearts.push({
-    x: x || Math.random() * canvas.width,
-    y: y || canvas.height,
-    size: Math.random() * 20 + 10
-  });
-}
-
 // TIKLAMA
 function flap() {
   if (gameOver) {
     location.reload();
   } else {
     bird.velocity = bird.lift;
-
-    // ✨ zıplama efekti
-    for (let i = 0; i < 3; i++) {
-      createHeart(bird.x, bird.y);
-    }
   }
 }
 
@@ -79,66 +55,57 @@ function update() {
   bird.velocity += bird.gravity;
   bird.y += bird.velocity;
 
-  if (bird.y > canvas.height || bird.y < 0) endGame();
+  if (bird.y > canvas.height || bird.y < 0) {
+    endGame();
+  }
 
   pipes.forEach(pipe => {
-    pipe.x -= 2.5; // YAVAŞ
+    pipe.x -= 2.5;
 
+    // skor
     if (!pipe.passed && pipe.x + pipe.width < bird.x) {
       score++;
       pipe.passed = true;
       document.getElementById("score").innerText = score;
     }
 
+    // çarpışma (daha doğru hitbox)
+    const birdTop = bird.y - 15;
+    const birdBottom = bird.y + 15;
+    const birdLeft = bird.x - 15;
+    const birdRight = bird.x + 15;
+
     if (
-      bird.x + 15 > pipe.x &&
-      bird.x - 15 < pipe.x + pipe.width &&
-      (bird.y < pipe.top || bird.y > pipe.bottom)
+      birdRight > pipe.x &&
+      birdLeft < pipe.x + pipe.width &&
+      (birdTop < pipe.top || birdBottom > pipe.bottom)
     ) {
       endGame();
     }
   });
 
-  hearts.forEach(h => h.y -= 1);
-
-  if (Math.random() < 0.01) createPipe(); // DAHA SEYREK
-  if (Math.random() < 0.06) createHeart();
+  // 🧠 borular arası mesafe garantili
+  if (
+    pipes.length === 0 ||
+    canvas.width - pipes[pipes.length - 1].x > 300
+  ) {
+    createPipe();
+  }
 }
 
 // ÇİZ
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  // ☁️ BULUTLAR
-  ctx.fillStyle = "rgba(255,255,255,0.6)";
-  clouds.forEach(c => {
-    ctx.beginPath();
-    ctx.arc(c.x, c.y, c.size, 0, Math.PI * 2);
-    ctx.fill();
-    c.x -= 0.5;
-    if (c.x < -50) c.x = canvas.width;
-  });
-
-  // 😘 KUŞ
+  // kuş
   ctx.font = "35px Arial";
   ctx.fillText("😘", bird.x - 15, bird.y + 10);
 
-  // BORULAR
-  ctx.fillStyle = "#2ecc71";
+  // borular
+  ctx.fillStyle = "green";
   pipes.forEach(pipe => {
-    ctx.shadowColor = "black";
-    ctx.shadowBlur = 15;
-
     ctx.fillRect(pipe.x, 0, pipe.width, pipe.top);
     ctx.fillRect(pipe.x, pipe.bottom, pipe.width, canvas.height);
-
-    ctx.shadowBlur = 0;
-  });
-
-  // 💖 KALPLER
-  ctx.font = "20px Arial";
-  hearts.forEach(h => {
-    ctx.fillText("❤️", h.x, h.y);
   });
 }
 
