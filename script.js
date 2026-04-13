@@ -1,7 +1,6 @@
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
-// resize
 function resize() {
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
@@ -27,10 +26,16 @@ let score = 0;
 let highScore = localStorage.getItem("highScore") || 0;
 document.getElementById("highScore").innerText = "En iyi: " + highScore;
 
-// loading → start
+// 💖 LOGO → MESAJ → START AKIŞI
 setTimeout(() => {
-  document.getElementById("loading").style.display = "none";
-  document.getElementById("startScreen").style.display = "flex";
+  document.getElementById("logoScreen").style.display = "none";
+  document.getElementById("messageBox").style.display = "flex";
+
+  setTimeout(() => {
+    document.getElementById("messageBox").style.display = "none";
+    document.getElementById("startScreen").style.display = "flex";
+  }, 2000);
+
 }, 2000);
 
 // boru
