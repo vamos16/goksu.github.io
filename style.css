@@ -1,27 +1,29 @@
 body {
   margin: 0;
   overflow: hidden;
-  font-family: Arial;
-  background: linear-gradient(to top, #87ceeb, #e0f7ff);
+  font-family: Arial, sans-serif;
+  background: linear-gradient(to top, #87ceeb, #dff6ff);
 }
 
+/* skor */
 #score {
   position: absolute;
   top: 20px;
   left: 20px;
-  font-size: 30px;
+  font-size: 35px;
   color: white;
   font-weight: bold;
-  text-shadow: 2px 2px 5px black;
+  text-shadow: 3px 3px 8px black;
 }
 
+/* game over */
 #gameOver {
   position: absolute;
   top: 40%;
   width: 100%;
   text-align: center;
-  font-size: 32px;
+  font-size: 36px;
   color: white;
   display: none;
-  text-shadow: 2px 2px 8px black;
+  text-shadow: 3px 3px 10px black;
 }
