@@ -1,7 +1,7 @@
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
-// 🔥 HD AYARI
+// HD
 function resize() {
   const scale = window.devicePixelRatio || 1;
   canvas.width = window.innerWidth * scale;
@@ -13,70 +13,54 @@ function resize() {
 resize();
 window.addEventListener("resize", resize);
 
-// 🎮 OYUN
-let bird = { x: 100, y: 200, velocity: 0 };
+// OYUN DURUMU
+let started = false;
+let gameOver = false;
+
+// KUŞ
+let bird = {
+  x: 100,
+  y: window.innerHeight / 2,
+  velocity: 0
+};
+
 let pipes = [];
-let particles = [];
-let hearts = [];
-let clouds = [];
-
 let score = 0;
-let highScore = localStorage.getItem("highScore") || 0;
-document.getElementById("score").innerText = score;
 
-// ☁️ BULUT
-for (let i = 0; i < 6; i++) {
-  clouds.push({
-    x: Math.random() * window.innerWidth,
-    y: Math.random() * 200,
-    size: Math.random() * 60 + 40,
-    speed: Math.random() * 0.5 + 0.2
-  });
-}
-
-// 🟩 BORU
+// BORU
 function createPipe() {
-  const gap = Math.max(240, window.innerHeight * 0.35);
-  const margin = 60;
-  const top = Math.random() * (window.innerHeight - gap - margin * 2) + margin;
+  const gap = window.innerHeight * 0.45;
+  const margin = 80;
+
+  const minY = margin;
+  const maxY = window.innerHeight - gap - margin;
+
+  const top = Math.random() * (maxY - minY) + minY;
 
   pipes.push({
     x: window.innerWidth,
-    width: 70,
-    top,
+    width: 60,
+    top: top,
     bottom: top + gap,
     passed: false
   });
 }
 
-// 💖 KALP
-function createHeart(x, y) {
-  hearts.push({
-    x: x || Math.random() * window.innerWidth,
-    y: y || window.innerHeight,
-    size: Math.random() * 20 + 10,
-    speed: Math.random() * 1 + 0.5
-  });
-}
-
-// ✨ PARTICLE
-function createParticles(x, y) {
-  for (let i = 0; i < 10; i++) {
-    particles.push({
-      x,
-      y,
-      vx: Math.random() * 4 - 2,
-      vy: Math.random() * 4 - 2,
-      life: 30
-    });
-  }
-}
-
 // TIKLAMA
 function flap() {
-  bird.velocity = -9;
-  createParticles(bird.x, bird.y);
-  createHeart(bird.x, bird.y);
+  // ilk dokunuş → başlat
+  if (!started) {
+    started = true;
+    return;
+  }
+
+  // ölüyse restart
+  if (gameOver) {
+    reset();
+    return;
+  }
+
+  bird.velocity = -8;
 }
 
 document.addEventListener("click", flap);
@@ -84,13 +68,17 @@ document.addEventListener("touchstart", flap);
 
 // UPDATE
 function update() {
-  bird.velocity += 0.45;
+  if (!started || gameOver) return;
+
+  bird.velocity += 0.4;
   bird.y += bird.velocity;
 
-  if (bird.y > window.innerHeight || bird.y < 0) endGame();
+  if (bird.y > window.innerHeight || bird.y < 0) {
+    gameOver = true;
+  }
 
   pipes.forEach(p => {
-    p.x -= 3;
+    p.x -= 2;
 
     if (!p.passed && p.x + p.width < bird.x) {
       score++;
@@ -98,90 +86,66 @@ function update() {
       document.getElementById("score").innerText = score;
     }
 
+    const birdTop = bird.y - 15;
+    const birdBottom = bird.y + 15;
+
     if (
       bird.x + 15 > p.x &&
       bird.x - 15 < p.x + p.width &&
-      (bird.y < p.top || bird.y > p.bottom)
+      (birdTop < p.top || birdBottom > p.bottom)
     ) {
-      endGame();
+      gameOver = true;
     }
   });
 
-  particles.forEach(pt => {
-    pt.x += pt.vx;
-    pt.y += pt.vy;
-    pt.life--;
-  });
-
-  hearts.forEach(h => h.y -= h.speed);
-
-  clouds.forEach(c => {
-    c.x -= c.speed;
-    if (c.x < -50) c.x = window.innerWidth;
-  });
-
-  if (Math.random() < 0.015) createPipe();
-  if (Math.random() < 0.05) createHeart();
-
-  particles = particles.filter(p => p.life > 0);
+  if (
+    pipes.length === 0 ||
+    window.innerWidth - pipes[pipes.length - 1].x > 400
+  ) {
+    createPipe();
+  }
 }
 
-// DRAW
+// RESET
+function reset() {
+  bird.y = window.innerHeight / 2;
+  bird.velocity = 0;
+  pipes = [];
+  score = 0;
+  gameOver = false;
+  started = false;
+  document.getElementById("score").innerText = score;
+}
+
+// ÇİZ
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  // 🌄 SKY GRADIENT
-  let grad = ctx.createLinearGradient(0, 0, 0, window.innerHeight);
-  grad.addColorStop(0, "#87ceeb");
-  grad.addColorStop(1, "#e0f7ff");
-  ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
+  // kuş
+  ctx.font = "35px Arial";
+  ctx.fillText("😘", bird.x - 15, bird.y + 10);
 
-  // ☁️ CLOUDS
-  ctx.fillStyle = "rgba(255,255,255,0.7)";
-  clouds.forEach(c => {
-    ctx.beginPath();
-    ctx.arc(c.x, c.y, c.size, 0, Math.PI * 2);
-    ctx.fill();
-  });
-
-  // 😘 KUŞ
-  ctx.font = "36px Arial";
-  ctx.fillText("😘", bird.x - 18, bird.y + 12);
-
-  // 🟩 PIPES (PRO STYLE)
+  // borular
+  ctx.fillStyle = "#2ecc71";
   pipes.forEach(p => {
-    let pipeGrad = ctx.createLinearGradient(0, 0, 0, window.innerHeight);
-    pipeGrad.addColorStop(0, "#00ff99");
-    pipeGrad.addColorStop(1, "#006644");
-
-    ctx.fillStyle = pipeGrad;
-
     ctx.fillRect(p.x, 0, p.width, p.top);
     ctx.fillRect(p.x, p.bottom, p.width, window.innerHeight);
-
-    // cap
-    ctx.fillRect(p.x - 5, p.top - 20, p.width + 10, 20);
-    ctx.fillRect(p.x - 5, p.bottom, p.width + 10, 20);
   });
 
-  // ✨ PARTICLES
-  ctx.fillStyle = "white";
-  particles.forEach(pt => {
-    ctx.fillRect(pt.x, pt.y, 3, 3);
-  });
+  // 🟡 BAŞLANGIÇ YAZISI
+  if (!started) {
+    ctx.font = "30px Arial";
+    ctx.fillStyle = "white";
+    ctx.fillText("Dokunarak Başla 💖", 50, window.innerHeight / 2);
+  }
 
-  // 💖 HEARTS
-  ctx.font = "20px Arial";
-  hearts.forEach(h => {
-    ctx.fillText("❤️", h.x, h.y);
-  });
-}
-
-// GAME OVER
-function endGame() {
-  alert("Seni seviyorum ❤️ Skor: " + score);
-  location.reload();
+  // 💀 GAME OVER YAZISI
+  if (gameOver) {
+    ctx.font = "30px Arial";
+    ctx.fillStyle = "red";
+    ctx.fillText("Seni seviyorum ❤️", 50, window.innerHeight / 2);
+    ctx.fillText("Tekrar dokun", 50, window.innerHeight / 2 + 40);
+  }
 }
 
 // LOOP
